@@ -119,6 +119,26 @@ class GCE:
         response = _blocking_call(self.gce_service, self.auth_http, response)
 
 
+    # Firewalls
+    def add_firewall(self, firewall_name, allowed):
+        """
+        Add a new firewall to the project
+        """
+        firewall = {
+            'kind': 'compute#firewall',
+            'firewall-name': firewall_name,
+            'allowed': [{
+                'IPProtocol': allowed
+            }],
+            'network': self.network_url
+        }
+        request = self.gce_service.firewalls().insert(project=self.project_id,
+                                                      body=firewall)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        print response
+
+
 def _blocking_call(gce_service, project_id, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
 
