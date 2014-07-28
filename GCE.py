@@ -56,3 +56,42 @@ class GCE:
         self.network_url = '%s/global/networks/%s' % (self.project_url,
                                                       DEFAULT_NETWORK)
         self.project_id = project_id
+
+    def add_instance(self, instance_name, machine_type=DEFAULT_MACHINE_TYPE):
+        """
+        Add an instance to the project
+        """
+        instance = {
+            'kind': 'compute#instance',
+            'name': instance_name,
+            'machineType': machine_type,
+            'disks': [{
+                'autoDelete': 'true',
+                'boot': 'true',
+                'type': 'PERSISTANT',
+                'initializeParams': {
+                    'diskName': DEFAULT_ROOT_PD_NAME,
+                    'sourceImage': self.image_url
+                }
+            }],
+            'networkInterfaces': [{
+                'accessConfigs': [{
+                    'type': 'ONE_TO_ONE_NAT',
+                    'name': 'External NAT'
+                }],
+                'network': self.network_url
+            }],
+            'serviceAccounts': [{
+                'email': DEFAULT_SEVICE_EMAIL,
+                'scopes': DEFAULT_SCOPES
+            }],
+            
+        }
+        # Create the instance
+        request = self.gce_service.instances().insert(project=self.project_id,
+                                                      body=instance,
+                                                      zone=DEFAULT_ZONE)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        print response
+
