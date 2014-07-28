@@ -7,9 +7,7 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run_flow
 
-# import argparse
-# from oauth2client import tools
-# import sys
+
 DEFAULT_ZONE = 'us-central1-a'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
@@ -57,6 +55,7 @@ class GCE:
                                                       DEFAULT_NETWORK)
         self.project_id = project_id
 
+    # Instances
     def add_instance(self, instance_name, machine_type=DEFAULT_MACHINE_TYPE):
         """
         Add an instance to the project
@@ -87,7 +86,6 @@ class GCE:
             }],
             
         }
-        # Create the instance
         request = self.gce_service.instances().insert(project=self.project_id,
                                                       body=instance,
                                                       zone=DEFAULT_ZONE)
@@ -119,6 +117,7 @@ class GCE:
                                                       zone=DEFAULT_ZONE)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.auth_http, response)
+
 
 def _blocking_call(gce_service, project_id, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
