@@ -120,3 +120,23 @@ class GCE:
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.auth_http, response)
 
+def _blocking_call(gce_service, project_id, auth_http, response):
+    """Blocks until the operation status is done for the given operation."""
+
+    status = response['status']
+    while status != 'DONE' and response:
+        operation_id = response['name']
+    
+        # Identify if this is a per-zone resource
+        if 'zone' in response:
+            zone_name = response['zone'].split('/')[-1]
+            request = gce_service.zoneOperations().get(
+                    project=project_id, operation=operation_id, zone=zone_name)
+        else:
+            request = gce_service.zoneOperations().get(
+                    project=project_id, operation=operation_id)
+        
+        response = request.execute(http=auth_http)
+        if response:
+            status = response['status']
+    return response
