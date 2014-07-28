@@ -95,6 +95,21 @@ class GCE:
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
         print response
 
+    def list_instances(self):
+        """
+        List all instances running in the project
+        """
+        request = self.gce_service.instances().list(project=self.project_id,
+                                                    filter=None,
+                                                    zone=DEFAULT_ZONE)
+        response = request.execute(http=self.auth_http)
+        if response and 'items' in response:
+            instances = response['items']
+            for instance in instances:
+                print instance['name']
+        else:
+            print 'No instances to list. '
+
     def delete_instance(self, instance_name):
         """
         Delete an instance with a given name from the project
