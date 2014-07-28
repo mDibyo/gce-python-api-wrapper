@@ -6,7 +6,8 @@ import logging
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run_flow
-
+import argparse
+from oauth2client import tools
 
 DEFAULT_ZONE = 'us-central1-a'
 API_VERSION = 'v1'
@@ -34,13 +35,18 @@ class GCE:
         Perform OAuth 2 authorization and build the service
         """
         logging.basicConfig(level=logging.INFO)
-        
+
+        parser = argparse.ArgumentParser(description=__doc__,
+                                         formatter_class=argparse.RawDescriptionHelpFormatter,
+                                         parents=[tools.argparser])
+        flags = parser.parse_args([])
+
         flow = flow_from_clientsecrets(CLIENT_SECRETS, scope=GCE_SCOPE)
         storage = Storage(OAUTH2_STORAGE)
         credentials = storage.get()
         
         if credentials is None or credentials.invalid:
-            credentials = run_flow(flow, storage)
+            credentials = run_flow(flow, storage, flags)
         self.auth_http = credentials.authorize(httplib2.Http())
         
         # Build the service
@@ -60,10 +66,12 @@ class GCE:
         """
         Add an instance to the project
         """
+        machine_type_url = '%s/zones/%s/machineTypes/%s' % (
+                self.project_url, DEFAULT_ZONE, machine_type)
         instance = {
             'kind': 'compute#instance',
             'name': instance_name,
-            'machineType': machine_type,
+            'machineType': machine_type_url,
             'disks': [{
                 'autoDelete': 'true',
                 'boot': 'true',
@@ -116,7 +124,7 @@ class GCE:
                                                       instance=instance_name,
                                                       zone=DEFAULT_ZONE)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.auth_http, response)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
 
     # Firewalls
@@ -126,7 +134,8 @@ class GCE:
         """
         firewall = {
             'kind': 'compute#firewall',
-            'firewall-name': firewall_name,
+            'name': firewall_name,
+            'sourceRanges': ['0.0.0.0/0'],
             'allowed': [{
                 'IPProtocol': allowed
             }],
@@ -162,7 +171,7 @@ def _blocking_call(gce_service, project_id, auth_http, response):
                     project=project_id, operation=operation_id, zone=zone_name)
         else:
             request = gce_service.zoneOperations().get(
-                    project=project_id, operation=operation_id)
+                    project=project_id, operation=operation_id, zone=zone_name)
         
         response = request.execute(http=auth_http)
         if response:
