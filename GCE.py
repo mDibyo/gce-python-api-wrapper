@@ -28,3 +28,31 @@ DEFAULT_ROOT_PD_NAME = 'my-root-pd'
 DEFAULT_SEVICE_EMAIL = 'default'
 DEFAULT_SCOPES = ['https://www.googleapis.com/auth/devstorage.full_control',
                   'https://www.googleapis.com/auth/compute']
+
+class GCE:
+    
+    def __init__(self, project_id):
+        """
+        Perform OAuth 2 authorization and build the service
+        """
+        logging.basicConfig(level=logging.INFO)
+        
+        flow = flow_from_clientsecrets(CLIENT_SECRETS, scope=GCE_SCOPE)
+        storage = Storage(OAUTH2_STORAGE)
+        credentials = storage.get()
+        
+        if credentials is None or credentials.invalid:
+            credentials = run_flow(flow, storage)
+        self.auth_http = credentials.authorize(httplib2.Http())
+        
+        # Build the service
+        self.gce_service = build('compute', API_VERSION)
+        self.project_url = '%s%s' % (GCE_URL, project_id)
+        self.image_url = '%s%s/global/images/%s' % (
+            GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
+        self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
+                                                                 DEFAULT_ZONE,
+                                                                 DEFAULT_MACHINE_TYPE)
+        self.network_url = '%s/global/networks/%s' % (self.project_url,
+                                                      DEFAULT_NETWORK)
+        self.project_id = project_id
