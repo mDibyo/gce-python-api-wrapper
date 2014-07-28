@@ -9,6 +9,7 @@ from oauth2client.tools import run_flow
 import argparse
 from oauth2client import tools
 
+
 DEFAULT_ZONE = 'us-central1-a'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
@@ -92,7 +93,6 @@ class GCE:
                 'email': DEFAULT_SEVICE_EMAIL,
                 'scopes': DEFAULT_SCOPES
             }],
-            
         }
         request = self.gce_service.instances().insert(project=self.project_id,
                                                       body=instance,
@@ -146,6 +146,19 @@ class GCE:
         response = request.execute(http=self.auth_http)
         print response
 
+    def list_firewalls(self):
+        """
+        List all firewalls applied to project'
+        """
+        request = self.gce_service.firewalls().list(project=self.project_id,
+                                                    filter=None)
+        response = request.execute(http=self.auth_http)
+        if response and 'items' in response:
+            for firewall in response['items']:
+                print firewall['name']
+        else:
+            print 'No firewalls in list. '
+
     def delete_firewall(self, firewall_name):
         """
         Delete a firewall with a given name from the project
@@ -175,3 +188,4 @@ def _blocking_call(gce_service, project_id, auth_http, response):
         if response:
             status = response['status']
     return response
+
