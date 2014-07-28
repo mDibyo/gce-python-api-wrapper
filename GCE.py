@@ -95,3 +95,13 @@ class GCE:
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
         print response
 
+    def delete_instance(self, instance_name):
+        """
+        Delete an instance with a given name from the project
+        """
+        request = self.gce_service.instances().delete(project=self.project_id,
+                                                      instance=instance_name,
+                                                      zone=DEFAULT_ZONE)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.auth_http, response)
+
