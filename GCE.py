@@ -174,7 +174,7 @@ class GCE:
         Add an image to the project
         """
         raw_disk_url = 'http://storage.googleapis.com/%s/%s' % (
-                gce, bucket, source_name)
+                gce_bucket, source_name)
         image = {
             'kind': 'compute#image',
             'name': image_name,
@@ -187,8 +187,7 @@ class GCE:
         request = self.gce_service.images().insert(project=self.project_id,
                                                    body=image)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
-    
+
     def list_images(self):
         """
         List all images in project
