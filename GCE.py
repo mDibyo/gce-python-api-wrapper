@@ -168,6 +168,17 @@ class GCE:
                                                           zone=DEFAULT_ZONE)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+    
+    def detach_disk(self, instance_name, disk_name):
+        """
+        Detach a persistent disk from a running instance
+        """
+        request = self.gce_service.instances().detachDisk(project=self.project_id,
+                                                          instance=instance_name,
+                                                          deviceName=disk_name,
+                                                          zone=DEFAULT_ZONE)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
 
     # Firewalls
