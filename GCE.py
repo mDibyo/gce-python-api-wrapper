@@ -168,9 +168,30 @@ class GCE:
         response = request.execute(http=self.auth_http)
 
 
+    # Images
+    def add_image(self, image_name, gce_bucket, source_name):
+        """
+        Add an image to the project
+        """
+        raw_disk_url = 'http://storage.googleapis.com/%s/%s' % (
+                gce, bucket, source_name)
+        image = {
+            'kind': 'compute#image',
+            'name': image_name,
+            'rawDisk': {
+                'containerType': 'TAR',
+                'source': raw_disk_url
+            },
+            'sourceType': 'RAW',
+        }
+        request = self.gce_service.images().insert(project=self.project_id,
+                                                   body=image)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+
 def _blocking_call(gce_service, project_id, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
-
+    
     status = response['status']
     while status != 'DONE' and response:
         operation_id = response['name']
