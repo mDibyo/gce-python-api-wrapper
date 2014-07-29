@@ -188,6 +188,20 @@ class GCE:
                                                    body=image)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+    
+    def list_images(self):
+        """
+        List all images in project
+        """
+        request = self.gce_service.images().list(project=self.project_id,
+                                                 filter=None)
+        response = request.execute(http=self.auth_http)
+        if response and 'items' in response:
+            for firewall in response['items']:
+                print firewall['name']
+        else:
+            print 'No images in list. '
+
 
 def _blocking_call(gce_service, project_id, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
