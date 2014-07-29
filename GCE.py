@@ -202,6 +202,13 @@ class GCE:
         else:
             print 'No images in list. '
 
+    def delete_image(self, image_name):
+        """
+        Delete an image resource from the project
+        """
+        request = self.gce_service.images().delete(project=self.project_id,
+                                                   image=image_name)
+        response = request.execute(http=self.auth_http)
 
 def _blocking_call(gce_service, project_id, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
