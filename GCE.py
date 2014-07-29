@@ -247,6 +247,16 @@ class GCE:
                 print disk['name']
         else:
             print 'No disks to list. '
+    
+    def delete_disk(self, disk_name):
+        """
+        Delete a persistent disk from the project.
+        """
+        request = self.gce_service.disks().delete(project=self.project_id,
+                                                  disk=disk_name,
+                                                  zone=DEFAULT_ZONE)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
 
     # Images
