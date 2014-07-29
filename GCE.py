@@ -216,16 +216,14 @@ class GCE:
                 'kind': 'compute#disks',
                 'name': disk_name,
                 'type': disk_type_url,
-                'sizeGb': size_gb,
-                # 'sourceImage': source_image,
-                # 'sourceSnapshot': source_snapshot,            
+                'sizeGb': size_gb,        
             }
             if source_snapshot:
                 snapshot_url = '%s/global/snapshots/%s' % (
                         self.project_url, source_snapshot)
                 disk['sourceSnapshot'] = snapshot_url
             elif source_image:
-                iamge_url = '%s/zone/%s/disks/%s' % (
+                image_url = '%s/zone/%s/disks/%s' % (
                         self.project_url, DEFAULT_ZONE, source_image)
                 disk['sourceImage'] = image_url 
             request = self.gce_service.disks().insert(project=self.project_id,
@@ -235,6 +233,21 @@ class GCE:
             response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
         else:
             print 'At least one of source_image, source_snapshot and size_gb must be specified'
+    
+    def list_disks(self):
+        """
+        List all persistent disks in the project.
+        """
+        request = self.gce_service.disks().list(project=self.project_id,
+                                                filter=None,
+                                                zone=DEFAULT_ZONE)
+        response = request.execute(http=self.auth_http)
+        if response and 'items' in response:
+            for disk in response['items']:
+                print disk['name']
+        else:
+            print 'No disks to list. '
+
 
     # Images
     def add_image(self, image_name, gce_bucket, source_name):
@@ -276,6 +289,7 @@ class GCE:
         request = self.gce_service.images().delete(project=self.project_id,
                                                    image=image_name)
         response = request.execute(http=self.auth_http)
+
 
 def _blocking_call(gce_service, project_id, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
