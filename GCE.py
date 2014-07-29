@@ -167,6 +167,23 @@ class GCE:
                                                       firewall=firewall_name)
         response = request.execute(http=self.auth_http)
 
+    
+    # Disks
+    def add_snapshot(self, snapshot_name, disk_name):
+        """
+        Create a snapshot from an existing persistent disk resource in the project.
+        """
+        snapshot = {
+            'kind': 'compute#snapshot',
+            'name': snapshot_name
+        }
+        request = self.gce_service.disks().createSnapshot(project=self.project_id,
+                                                          body=snapshot,
+                                                          zone=DEFAULT_ZONE,
+                                                          disk=disk_name)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+
 
 def _blocking_call(gce_service, project_id, auth_http, response):
     """Blocks until the operation status is done for the given operation."""
