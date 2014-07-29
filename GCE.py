@@ -196,6 +196,14 @@ class GCE:
                 print firewall['name']
         else:
             print 'No snapshots to list. '
+    
+    def delete_snapshot(self, snapshot_name):
+        """
+        Delete a snapshot resource from the project.
+        """
+        request = self.gce_service.snapshots().delete(project=self.project_id,
+                                                      snapshot=snapshot_name)
+        response = request.execute(http=self.auth_http)
 
 
 def _blocking_call(gce_service, project_id, auth_http, response):
