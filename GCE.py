@@ -192,8 +192,8 @@ class GCE:
                                                     filter=None)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
-            for firewall in response['items']:
-                print firewall['name']
+            for snapshot in response['items']:
+                print snapshot['name']
         else:
             print 'No snapshots to list. '
     
@@ -204,7 +204,32 @@ class GCE:
         request = self.gce_service.snapshots().delete(project=self.project_id,
                                                       snapshot=snapshot_name)
         response = request.execute(http=self.auth_http)
-
+    
+    def add_disk(self, disk_name, disk_type='pd-standard', source_image=None, source_snapshot=None, size_gb=None):
+        """
+        Create a persistent disk from a given snapshot or image in the project
+        """
+        if source_image or source_snapshot or size_gb:
+            disk_type_url = '%s/zones/%s/diskTypes/%s' % (
+                    self.project_url, DEFAULT_ZONE, disk_type)
+            disk = {
+                'kind': 'compute#disks',
+                'name': disk_name,
+                'type': disk_type_url,
+                'sizeGb': size_gb,
+                # 'sourceImage': source_image,
+                # 'sourceSnapshot': source_snapshot,            
+            }
+            if source_snapshot:
+                snapshot_url = 
+                disk['sourceSnapshot'] = 
+            request = self.gce_service.disks().insert(project=self.project_id,
+                                                      body=disk,
+                                                      zone=DEFAULT_ZONE)
+            response = request.execute(http=self.auth_http)
+            response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        else:
+            print 'At least one of source_image, source_snapshot and size_gb must be specified'
 
     # Images
     def add_image(self, image_name, gce_bucket, source_name):
