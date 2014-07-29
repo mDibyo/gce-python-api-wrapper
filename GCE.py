@@ -221,8 +221,13 @@ class GCE:
                 # 'sourceSnapshot': source_snapshot,            
             }
             if source_snapshot:
-                snapshot_url = 
-                disk['sourceSnapshot'] = 
+                snapshot_url = '%s/global/snapshots/%s' % (
+                        self.project_url, source_snapshot)
+                disk['sourceSnapshot'] = snapshot_url
+            elif source_image:
+                iamge_url = '%s/zone/%s/disks/%s' % (
+                        self.project_url, DEFAULT_ZONE, source_image)
+                disk['sourceImage'] = image_url 
             request = self.gce_service.disks().insert(project=self.project_id,
                                                       body=disk,
                                                       zone=DEFAULT_ZONE)
@@ -292,4 +297,7 @@ def _blocking_call(gce_service, project_id, auth_http, response):
         if response:
             status = response['status']
     return response
+
+
+gce = GCE("nth-clone-620")
 
