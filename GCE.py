@@ -148,6 +148,26 @@ class GCE:
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
+    def attach_disk(self, instance_name, disk_name, mode='rw'):
+        """
+        Attach a persistent disk to a running instance
+        """
+        disk_url = '%s/zones/%s/disks/%s' % (
+                self.project_url, DEFAULT_ZONE, disk_name)
+        disk = {
+            'kind': 'compute#attachedDisk',
+            'boot': False,
+            'source': disk_url,
+            'type': 'PERSISTANT',
+            'mode': mode,
+            'deviceName': disk_name
+        }
+        request = self.gce_service.instances().attachDisk(project=self.project_id,
+                                                          body=disk,
+                                                          instance=instance_name,
+                                                          zone=DEFAULT_ZONE)
+        response = request.execute(http=self.auth_http)
+        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
 
     # Firewalls
