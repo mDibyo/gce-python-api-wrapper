@@ -61,14 +61,36 @@ class GCE:
         self.network_url = '%s/global/networks/%s' % (self.project_url,
                                                       DEFAULT_NETWORK)
         self.project_id = project_id
-
+    
+    
+    def set_defaults(self,
+                     zone=None,
+                     image=None,
+                     machine_type=None):
+        if zone:
+            DEFAULT_ZONE = zone
+        if image:
+            self.image_url = '%s/global/images/%s' % (
+                    self.project_url, image)
+        if machine_type:
+            self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (
+                self.project_url, DEFAULT_ZONE, machine_type)
+    
     # Instances
-    def add_instance(self, instance_name, machine_type=DEFAULT_MACHINE_TYPE):
+    def add_instance(self, instance_name, machine_type=None, disk=None, image=None):
         """
         Add an instance to the project
         """
-        machine_type_url = '%s/zones/%s/machineTypes/%s' % (
-                self.project_url, DEFAULT_ZONE, machine_type)
+        if machine_type:
+            machine_type_url = '%s/zones/%s/machineTypes/%s' % (
+                    self.project_url, DEFAULT_ZONE, machine_type)
+        else:
+            machine_type_url = self.machine_type_url
+        if image:
+            image_url = '%s/global/images/%s' % (
+                    self.project_url, image)
+        else:
+            image_url = self.image_url
         instance = {
             'kind': 'compute#instance',
             'name': instance_name,
@@ -79,7 +101,7 @@ class GCE:
                 'type': 'PERSISTANT',
                 'initializeParams': {
                     'diskName': DEFAULT_ROOT_PD_NAME,
-                    'sourceImage': self.image_url
+                    'sourceImage': image_url
                 }
             }],
             'networkInterfaces': [{
@@ -125,6 +147,7 @@ class GCE:
                                                       zone=DEFAULT_ZONE)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+    
 
 
     # Firewalls
@@ -148,7 +171,7 @@ class GCE:
 
     def list_firewalls(self):
         """
-        List all firewalls applied to project'
+        List all firewalls applied to project
         """
         request = self.gce_service.firewalls().list(project=self.project_id,
                                                     filter=None)
