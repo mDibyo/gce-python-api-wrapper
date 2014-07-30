@@ -31,10 +31,27 @@ DEFAULT_SCOPES = ['https://www.googleapis.com/auth/devstorage.full_control',
 
 class GCE:
     
-    def __init__(self, project_id):
+    def __init__(self, project_id, zone):
         """
         Perform OAuth 2 authorization and build the service
         """
+        self.__authenticate()
+        
+        # Build the service
+        self.gce_service = build('compute', API_VERSION)
+        
+        # Set defaults
+        self.set_defaults(project_id=project_id,
+                          zone=zone)
+        self.image_url = '%s%s/global/images/%s' % (
+            GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
+        self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
+                                                                 DEFAULT_ZONE,
+                                                                 DEFAULT_MACHINE_TYPE)
+        
+
+    
+    def __authenticate(self):
         logging.basicConfig(level=logging.INFO)
 
         parser = argparse.ArgumentParser(description=__doc__,
@@ -49,26 +66,20 @@ class GCE:
         if credentials is None or credentials.invalid:
             credentials = run_flow(flow, storage, flags)
         self.auth_http = credentials.authorize(httplib2.Http())
-        
-        # Build the service
-        self.gce_service = build('compute', API_VERSION)
-        self.project_url = '%s%s' % (GCE_URL, project_id)
-        self.image_url = '%s%s/global/images/%s' % (
-            GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
-        self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
-                                                                 DEFAULT_ZONE,
-                                                                 DEFAULT_MACHINE_TYPE)
-        self.network_url = '%s/global/networks/%s' % (self.project_url,
-                                                      DEFAULT_NETWORK)
-        self.project_id = project_id
     
     
     def set_defaults(self,
+                     project_id=None,
                      zone=None,
                      image=None,
                      machine_type=None):
+        if project_id:
+            self.project_id = project_id
+            self.project_url = '%s%s' % (GCE_URL, project_id)
+            self.network_url = '%s/global/networks/%s' % (
+                    self.project_url, DEFAULT_NETWORK)
         if zone:
-            DEFAULT_ZONE = zone
+            self.zone = zone
         if image:
             self.image_url = '%s/global/images/%s' % (
                     self.project_url, image)
@@ -148,7 +159,7 @@ class GCE:
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
-    def attach_disk(self, instance_name, disk_name, mode='rw'):
+    def attach_disk(self, instance_name, disk_name, mode='READ_WRITE'):
         """
         Attach a persistent disk to a running instance
         """
@@ -377,5 +388,5 @@ def _blocking_call(gce_service, project_id, auth_http, response):
     return response
 
 
-gce = GCE("nth-clone-620")
+# gce = GCE("nth-clone-620")
 
