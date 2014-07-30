@@ -34,6 +34,7 @@ class GCE:
         """
         Perform OAuth 2 authorization and build the service
         """
+        logging.basicConfig(level=logging.INFO)
         self.__authenticate()
         
         # Build the service
@@ -51,8 +52,6 @@ class GCE:
 
     
     def __authenticate(self):
-        logging.basicConfig(level=logging.INFO)
-
         parser = argparse.ArgumentParser(description=__doc__,
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
                                          parents=[tools.argparser])
@@ -67,7 +66,7 @@ class GCE:
         self.auth_http = credentials.authorize(httplib2.Http())
     
     
-    def set_defaults(self,
+    def setdefaults(self,
                      project_id=None,
                      zone=None,
                      image=None,
@@ -87,7 +86,7 @@ class GCE:
                 self.project_url, self.zone, machine_type)
     
     # Instances
-    def add_instance(self, instance_name, machine_type=None, disk=None, image=None, zone=None):
+    def addinstance(self, instance_name, machine_type=None, disk=None, image=None, zone=None):
         """
         Add an instance to the project
         """
@@ -138,7 +137,7 @@ class GCE:
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
         print response
 
-    def list_instances(self, zone=None):
+    def listinstances(self, zone=None):
         """
         List all instances running in the project
         """
@@ -158,7 +157,7 @@ class GCE:
         else:
             print 'No instances to list. '
 
-    def delete_instance(self, instance_name, zone=None):
+    def deleteinstance(self, instance_name, zone=None):
         """
         Delete an instance with a given name from the project
         """
@@ -173,7 +172,7 @@ class GCE:
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
-    def attach_disk(self, instance_name, disk_name, mode='READ_WRITE', zone=None):
+    def attachdisk(self, instance_name, disk_name, mode='READ_WRITE', zone=None):
         """
         Attach a persistent disk to a running instance
         """
@@ -199,7 +198,7 @@ class GCE:
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
-    def detach_disk(self, instance_name, disk_name, zone=None):
+    def detachdisk(self, instance_name, disk_name, zone=None):
         """
         Detach a persistent disk from a running instance
         """
@@ -217,7 +216,7 @@ class GCE:
 
 
     # Firewalls
-    def add_firewall(self, firewall_name, allowed):
+    def addfirewall(self, firewall_name, allowed):
         """
         Add a new firewall to the project
         """
@@ -235,7 +234,7 @@ class GCE:
         response = request.execute(http=self.auth_http)
         print response
 
-    def list_firewalls(self):
+    def listfirewalls(self):
         """
         List all firewalls applied to project
         """
@@ -248,7 +247,7 @@ class GCE:
         else:
             print 'No firewalls in list. '
 
-    def delete_firewall(self, firewall_name):
+    def deletefirewall(self, firewall_name):
         """
         Delete a firewall with a given name from the project
         """
@@ -258,7 +257,7 @@ class GCE:
 
     
     # Disks
-    def add_snapshot(self, snapshot_name, disk_name, zone=None):
+    def addsnapshot(self, snapshot_name, disk_name, zone=None):
         """
         Create a snapshot from an existing persistent disk resource in the project.
         """
@@ -277,7 +276,7 @@ class GCE:
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
-    def list_snapshots(self):
+    def listsnapshots(self):
         """
         List all snapshots associated with the project
         """
@@ -290,7 +289,7 @@ class GCE:
         else:
             print 'No snapshots to list. '
     
-    def delete_snapshot(self, snapshot_name):
+    def deletesnapshot(self, snapshot_name):
         """
         Delete a snapshot resource from the project.
         """
@@ -298,7 +297,7 @@ class GCE:
                                                       snapshot=snapshot_name)
         response = request.execute(http=self.auth_http)
     
-    def add_disk(self, disk_name, disk_type='pd-standard', source_image=None, source_snapshot=None, size_gb=None, zone=None):
+    def adddisk(self, disk_name, disk_type='pd-standard', source_image=None, source_snapshot=None, size_gb=None, zone=None):
         """
         Create a persistent disk from a given snapshot or image in the project
         """
@@ -332,7 +331,7 @@ class GCE:
         else:
             print 'At least one of source_image, source_snapshot and size_gb must be specified'
     
-    def list_disks(self, zone=None):
+    def listdisks(self, zone=None):
         """
         List all persistent disks in the project.
         """
@@ -351,7 +350,7 @@ class GCE:
         else:
             print 'No disks to list. '
     
-    def delete_disk(self, disk_name, zone=None):
+    def deletedisk(self, disk_name, zone=None):
         """
         Delete a persistent disk from the project.
         """
@@ -368,7 +367,7 @@ class GCE:
 
 
     # Images
-    def add_image(self, image_name, gce_bucket, source_name):
+    def addimage(self, image_name, gce_bucket, source_name):
         """
         Add an image to the project
         """
@@ -387,7 +386,7 @@ class GCE:
                                                    body=image)
         response = request.execute(http=self.auth_http)
 
-    def list_images(self):
+    def listimages(self):
         """
         List all images in project
         """
@@ -400,7 +399,7 @@ class GCE:
         else:
             print 'No images in list. '
 
-    def delete_image(self, image_name):
+    def deleteimage(self, image_name):
         """
         Delete an image resource from the project
         """
