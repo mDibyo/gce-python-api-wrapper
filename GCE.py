@@ -10,7 +10,6 @@ import argparse
 from oauth2client import tools
 
 
-DEFAULT_ZONE = 'us-central1-a'
 API_VERSION = 'v1'
 GCE_URL = 'https://www.googleapis.com/compute/%s/projects/' % (API_VERSION)
 CLIENT_SECRETS = 'client_secrets.json'
@@ -46,7 +45,7 @@ class GCE:
         self.image_url = '%s%s/global/images/%s' % (
             GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
         self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
-                                                                 DEFAULT_ZONE,
+                                                                 self.zone,
                                                                  DEFAULT_MACHINE_TYPE)
         
 
@@ -85,16 +84,19 @@ class GCE:
                     self.project_url, image)
         if machine_type:
             self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (
-                self.project_url, DEFAULT_ZONE, machine_type)
+                self.project_url, self.zone, machine_type)
     
     # Instances
-    def add_instance(self, instance_name, machine_type=None, disk=None, image=None):
+    def add_instance(self, instance_name, machine_type=None, disk=None, image=None, zone=None):
         """
         Add an instance to the project
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
         if machine_type:
             machine_type_url = '%s/zones/%s/machineTypes/%s' % (
-                    self.project_url, DEFAULT_ZONE, machine_type)
+                    self.project_url, zone, machine_type)
         else:
             machine_type_url = self.machine_type_url
         if image:
@@ -127,20 +129,27 @@ class GCE:
                 'scopes': DEFAULT_SCOPES
             }],
         }
+        
+        # Execution
         request = self.gce_service.instances().insert(project=self.project_id,
                                                       body=instance,
-                                                      zone=DEFAULT_ZONE)
+                                                      zone=zone)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
         print response
 
-    def list_instances(self):
+    def list_instances(self, zone=None):
         """
         List all instances running in the project
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
+        
+        # Execution
         request = self.gce_service.instances().list(project=self.project_id,
                                                     filter=None,
-                                                    zone=DEFAULT_ZONE)
+                                                    zone=zone)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
             instances = response['items']
@@ -149,22 +158,30 @@ class GCE:
         else:
             print 'No instances to list. '
 
-    def delete_instance(self, instance_name):
+    def delete_instance(self, instance_name, zone=None):
         """
         Delete an instance with a given name from the project
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
+        
+        #Execution
         request = self.gce_service.instances().delete(project=self.project_id,
                                                       instance=instance_name,
-                                                      zone=DEFAULT_ZONE)
+                                                      zone=zone)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
-    def attach_disk(self, instance_name, disk_name, mode='READ_WRITE'):
+    def attach_disk(self, instance_name, disk_name, mode='READ_WRITE', zone=None):
         """
         Attach a persistent disk to a running instance
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
         disk_url = '%s/zones/%s/disks/%s' % (
-                self.project_url, DEFAULT_ZONE, disk_name)
+                self.project_url, zone, disk_name)
         disk = {
             'kind': 'compute#attachedDisk',
             'boot': False,
@@ -173,21 +190,28 @@ class GCE:
             'mode': mode,
             'deviceName': disk_name
         }
+        
+        # Execution
         request = self.gce_service.instances().attachDisk(project=self.project_id,
                                                           body=disk,
                                                           instance=instance_name,
-                                                          zone=DEFAULT_ZONE)
+                                                          zone=zone)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
-    def detach_disk(self, instance_name, disk_name):
+    def detach_disk(self, instance_name, disk_name, zone=None):
         """
         Detach a persistent disk from a running instance
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
+        
+        # Execution
         request = self.gce_service.instances().detachDisk(project=self.project_id,
                                                           instance=instance_name,
                                                           deviceName=disk_name,
-                                                          zone=DEFAULT_ZONE)
+                                                          zone=zone)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
@@ -234,17 +258,21 @@ class GCE:
 
     
     # Disks
-    def add_snapshot(self, snapshot_name, disk_name):
+    def add_snapshot(self, snapshot_name, disk_name, zone=None):
         """
         Create a snapshot from an existing persistent disk resource in the project.
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
+        
         snapshot = {
             'kind': 'compute#snapshot',
             'name': snapshot_name
         }
         request = self.gce_service.disks().createSnapshot(project=self.project_id,
                                                           body=snapshot,
-                                                          zone=DEFAULT_ZONE,
+                                                          zone=zone,
                                                           disk=disk_name)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
@@ -270,13 +298,16 @@ class GCE:
                                                       snapshot=snapshot_name)
         response = request.execute(http=self.auth_http)
     
-    def add_disk(self, disk_name, disk_type='pd-standard', source_image=None, source_snapshot=None, size_gb=None):
+    def add_disk(self, disk_name, disk_type='pd-standard', source_image=None, source_snapshot=None, size_gb=None, zone=None):
         """
         Create a persistent disk from a given snapshot or image in the project
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
         if source_image or source_snapshot or size_gb:
             disk_type_url = '%s/zones/%s/diskTypes/%s' % (
-                    self.project_url, DEFAULT_ZONE, disk_type)
+                    self.project_url, zone, disk_type)
             disk = {
                 'kind': 'compute#disks',
                 'name': disk_name,
@@ -289,23 +320,30 @@ class GCE:
                 disk['sourceSnapshot'] = snapshot_url
             elif source_image:
                 image_url = '%s/zone/%s/disks/%s' % (
-                        self.project_url, DEFAULT_ZONE, source_image)
-                disk['sourceImage'] = image_url 
+                        self.project_url, zone, source_image)
+                disk['sourceImage'] = image_url
+            
+            # Execution
             request = self.gce_service.disks().insert(project=self.project_id,
                                                       body=disk,
-                                                      zone=DEFAULT_ZONE)
+                                                      zone=zone)
             response = request.execute(http=self.auth_http)
             response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
         else:
             print 'At least one of source_image, source_snapshot and size_gb must be specified'
     
-    def list_disks(self):
+    def list_disks(self, zone=None):
         """
         List all persistent disks in the project.
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
+        
+        # Execution
         request = self.gce_service.disks().list(project=self.project_id,
                                                 filter=None,
-                                                zone=DEFAULT_ZONE)
+                                                zone=zone)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
             for disk in response['items']:
@@ -313,13 +351,18 @@ class GCE:
         else:
             print 'No disks to list. '
     
-    def delete_disk(self, disk_name):
+    def delete_disk(self, disk_name, zone=None):
         """
         Delete a persistent disk from the project.
         """
+        # Configuration
+        if not zone:
+            zone = self.zone
+        
+        # Execution
         request = self.gce_service.disks().delete(project=self.project_id,
                                                   disk=disk_name,
-                                                  zone=DEFAULT_ZONE)
+                                                  zone=zone)
         response = request.execute(http=self.auth_http)
         response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
@@ -388,5 +431,4 @@ def _blocking_call(gce_service, project_id, auth_http, response):
     return response
 
 
-# gce = GCE("nth-clone-620")
-
+gce = GCE("nth-clone-620")
