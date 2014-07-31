@@ -182,7 +182,21 @@ class GCE:
                 print instance['name']
         else:
             print 'No instances to list. '
-
+    
+    def getinstance(self, instance_name, zone=None):
+        """
+        Return information about an instance in the project
+        """
+        # Configuration
+        if not zone:
+            zone = self.zone
+        
+        # Execution
+        request = self.gce_service.instances().get(project=self.project_id,
+                                                   instance=instance_name
+                                                   zone=zone)
+        return request.execute(http=self.auth_http)
+        
     def deleteinstance(self, instance_name, zone=None):
         """
         Delete an instance with a given name from the project
