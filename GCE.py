@@ -36,24 +36,25 @@ class GCE:
         """
         if config:
             self.setdefaults(config)
+            return
+        
+        if logging_level:
+            logging.basicConfig(level=logging_level)
         else:
-            if logging_level:
-                logging.basicConfig(level=logging_level)
-            else:
-                logging.basicConfig(level=logging.INFO)
-            self.__authenticate()
-            
-            # Build the service
-            self.gce_service = build('compute', API_VERSION)
-            
-            # Set defaults
-            self.setdefaults(project_id=project_id,
-                              zone=zone)
-            self.image_url = '%s%s/global/images/%s' % (
-                GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
-            self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
-                                                                     self.zone,
-                                                                     DEFAULT_MACHINE_TYPE)
+            logging.basicConfig(level=logging.INFO)
+        self.__authenticate()
+        
+        # Build the service
+        self.gce_service = build('compute', API_VERSION)
+        
+        # Set defaults
+        self.setdefaults(project_id=project_id,
+                          zone=zone)
+        self.image_url = '%s%s/global/images/%s' % (
+            GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
+        self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
+                                                                 self.zone,
+                                                                 DEFAULT_MACHINE_TYPE)
     
     
     def __authenticate(self):
