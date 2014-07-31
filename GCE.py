@@ -67,23 +67,36 @@ class GCE:
     
     
     def setdefaults(self,
-                     project_id=None,
-                     zone=None,
-                     image=None,
-                     machine_type=None):
+                    config=None,
+                    project_id=None,
+                    zone=None,
+                    image=None,
+                    machine_type=None):
+        if config:
+            for key, value in config.items():
+                set_attr(self, key, value)
+        else:
+            config = {}
         if project_id:
             self.project_id = project_id
+            config['project_id'] = self.project_id
             self.project_url = '%s%s' % (GCE_URL, project_id)
+            config['project_url'] = self.project_url
             self.network_url = '%s/global/networks/%s' % (
                     self.project_url, DEFAULT_NETWORK)
+            config['network_url'] = self.network_url
         if zone:
             self.zone = zone
+            config['zone'] = zone
         if image:
             self.image_url = '%s/global/images/%s' % (
                     self.project_url, image)
+            config['image_url'] = self.image_url
         if machine_type:
             self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (
                 self.project_url, self.zone, machine_type)
+            config['machine_type_url'] = self.machine_type_url
+        return config
     
     # Instances
     def addinstance(self, instance_name, machine_type=None, disk=None, image=None, zone=None):
