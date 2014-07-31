@@ -41,7 +41,7 @@ class GCE:
         self.gce_service = build('compute', API_VERSION)
         
         # Set defaults
-        self.set_defaults(project_id=project_id,
+        self.setdefaults(project_id=project_id,
                           zone=zone)
         self.image_url = '%s%s/global/images/%s' % (
             GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
@@ -112,7 +112,6 @@ class GCE:
                 'boot': 'true',
                 'type': 'PERSISTANT',
                 'initializeParams': {
-                    'diskName': DEFAULT_ROOT_PD_NAME,
                     'sourceImage': image_url
                 }
             }],
@@ -430,4 +429,4 @@ def _blocking_call(gce_service, project_id, auth_http, response):
     return response
 
 
-gce = GCE("nth-clone-620")
+gce = GCE("nth-clone-620", "us-central1-a")
