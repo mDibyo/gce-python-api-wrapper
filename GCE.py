@@ -30,26 +30,31 @@ DEFAULT_SCOPES = ['https://www.googleapis.com/auth/devstorage.full_control',
 
 class GCE:
     
-    def __init__(self, project_id, zone):
+    def __init__(self, config=None, project_id=None, zone=None, logging_level=None):
         """
         Perform OAuth 2 authorization and build the service
         """
-        logging.basicConfig(level=logging.INFO)
-        self.__authenticate()
-        
-        # Build the service
-        self.gce_service = build('compute', API_VERSION)
-        
-        # Set defaults
-        self.setdefaults(project_id=project_id,
-                          zone=zone)
-        self.image_url = '%s%s/global/images/%s' % (
-            GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
-        self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
-                                                                 self.zone,
-                                                                 DEFAULT_MACHINE_TYPE)
-        
-
+        if config:
+            self.setdefaults(config)
+        else:
+            if logging_level:
+                logging.basicConfig(level=logging_level)
+            else:
+                logging.basicConfig(level=logging.INFO)
+            self.__authenticate()
+            
+            # Build the service
+            self.gce_service = build('compute', API_VERSION)
+            
+            # Set defaults
+            self.setdefaults(project_id=project_id,
+                              zone=zone)
+            self.image_url = '%s%s/global/images/%s' % (
+                GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
+            self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
+                                                                     self.zone,
+                                                                     DEFAULT_MACHINE_TYPE)
+    
     
     def __authenticate(self):
         parser = argparse.ArgumentParser(description=__doc__,
@@ -74,29 +79,37 @@ class GCE:
                     machine_type=None):
         if config:
             for key, value in config.items():
-                set_attr(self, key, value)
+                setattr(self, key, value)
         else:
             config = {}
         if project_id:
             self.project_id = project_id
-            config['project_id'] = self.project_id
             self.project_url = '%s%s' % (GCE_URL, project_id)
-            config['project_url'] = self.project_url
             self.network_url = '%s/global/networks/%s' % (
                     self.project_url, DEFAULT_NETWORK)
-            config['network_url'] = self.network_url
         if zone:
             self.zone = zone
-            config['zone'] = zone
         if image:
             self.image_url = '%s/global/images/%s' % (
                     self.project_url, image)
-            config['image_url'] = self.image_url
         if machine_type:
             self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (
                 self.project_url, self.zone, machine_type)
-            config['machine_type_url'] = self.machine_type_url
+        
+    def getdefaults(self):
+        config = {}
+        def set_value(attr):
+            if hasattr(self, attr):
+                config[attr] = getattr(self, attr)
+        set_value('auth_http')
+        set_value('project_id')
+        set_value('project_url')
+        set_value('network_url')
+        set_value('zone')
+        set_value('image_url')
+        set_value('machine_type_url')
         return config
+    
     
     # Instances
     def addinstance(self, instance_name, machine_type=None, disk=None, image=None, zone=None):
