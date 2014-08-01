@@ -177,11 +177,10 @@ class GCE:
                                                     zone=zone)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
-            instances = response['items']
-            for instance in instances:
-                print instance['name']
+            return [instance['name'] for instance in response['items']]
         else:
             print 'No instances to list. '
+            return []
     
     def getinstance(self, instance_name, zone=None):
         """
@@ -193,7 +192,7 @@ class GCE:
         
         # Execution
         request = self.gce_service.instances().get(project=self.project_id,
-                                                   instance=instance_name
+                                                   instance=instance_name,
                                                    zone=zone)
         return request.execute(http=self.auth_http)
         
@@ -282,10 +281,10 @@ class GCE:
                                                     filter=None)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
-            for firewall in response['items']:
-                print firewall['name']
+            return [firewall['name'] for firewall in response['items']]
         else:
-            print 'No firewalls in list. '
+            print 'No firewalls to list. '
+            return []
 
     def deletefirewall(self, firewall_name):
         """
@@ -470,4 +469,4 @@ def _blocking_call(gce_service, project_id, auth_http, response):
     return response
 
 
-gce = GCE("nth-clone-620", "us-central1-a")
+gce = GCE(project_id="nth-clone-620", zone="us-central1-a", logging_level=logging.WARNING)
