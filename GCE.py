@@ -17,7 +17,6 @@ OAUTH2_STORAGE = 'oauth2.dat'
 GCE_SCOPE = 'https://www.googleapis.com/auth/compute'
 
 DEFAULT_IMAGES = {
-    'ubuntu': 'ubuntu14-server-raaas-docker',
     'debian': 'debian-7-wheezy-v20140718',
     'centos': 'centos-6-v20140718'
 }
@@ -30,34 +29,29 @@ DEFAULT_SCOPES = ['https://www.googleapis.com/auth/devstorage.full_control',
 
 class GCE:
     
-    def __init__(self, config=None, project_id=None, zone=None, logging_level=None):
+    def __init__(self, config=None, project_id=None, zone=None, logging_level=logging.INFO):
         """
         Perform OAuth 2 authorization and build the service
         """
-        if config:
-            self.setdefaults(config)
-            return
-        
-        if logging_level:
-            logging.basicConfig(level=logging_level)
-        else:
-            logging.basicConfig(level=logging.INFO)
-        self.__authenticate()
+        logging.basicConfig(level=logging_level)
+        self._authenticate()
         
         # Build the service
         self.gce_service = build('compute', API_VERSION)
         
+        # Initialize variables
+        self.project_id = None
+        self.project_url = None
+        self.network_url = None
+        self.zone = None
+        self.image_url = None
+        self.machine_type_url = None
+        
         # Set defaults
         self.setdefaults(project_id=project_id,
                           zone=zone)
-        self.image_url = '%s%s/global/images/%s' % (
-            GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
-        self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
-                                                                 self.zone,
-                                                                 DEFAULT_MACHINE_TYPE)
     
-    
-    def __authenticate(self):
+    def _authenticate(self):
         parser = argparse.ArgumentParser(description=__doc__,
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
                                          parents=[tools.argparser])
@@ -71,25 +65,30 @@ class GCE:
             credentials = run_flow(flow, storage, flags)
         self.auth_http = credentials.authorize(httplib2.Http())
     
+    def config(self, gce_config):
+        for key, value in gce_config.items():
+            setattr(self, key, value)
+        return self
     
     def setdefaults(self,
-                    config=None,
                     project_id=None,
                     zone=None,
                     image=None,
                     machine_type=None):
-        if config:
-            for key, value in config.items():
-                setattr(self, key, value)
-        else:
-            config = {}
+        if zone:
+            self.zone = zone
         if project_id:
             self.project_id = project_id
             self.project_url = '%s%s' % (GCE_URL, project_id)
             self.network_url = '%s/global/networks/%s' % (
                     self.project_url, DEFAULT_NETWORK)
-        if zone:
-            self.zone = zone
+            if not self.image_url:
+                self.image_url = '%s%s/global/images/%s' % (
+                        GCE_URL, 'debian-cloud', DEFAULT_IMAGES['debian'])
+            if not self.machine_type_url and self.zone:
+                self.machine_type_url = '%s/zones/%s/machineTypes/%s' % (self.project_url,
+                                                                         self.zone,
+                                                                        DEFAULT_MACHINE_TYPE)
         if image:
             self.image_url = '%s/global/images/%s' % (
                     self.project_url, image)
@@ -113,7 +112,7 @@ class GCE:
     
     
     # Instances
-    def addinstance(self, instance_name, machine_type=None, disk=None, image=None, zone=None):
+    def addinstance(self, instance_name, instance_tags=None, machine_type=None, disk=None, image=None, zone=None):
         """
         Add an instance to the project
         """
@@ -154,16 +153,17 @@ class GCE:
                 'scopes': DEFAULT_SCOPES
             }],
         }
+        if instance_tags:
+            instance['tags'] = { 'items': instance_tags }
         
         # Execution
         request = self.gce_service.instances().insert(project=self.project_id,
                                                       body=instance,
                                                       zone=zone)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
-        print response
+        return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
-    def listinstances(self, zone=None):
+    def getinstances(self, zone=None):
         """
         List all instances running in the project
         """
@@ -177,9 +177,8 @@ class GCE:
                                                     zone=zone)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
-            return [instance['name'] for instance in response['items']]
+            return response['items']
         else:
-            print 'No instances to list. '
             return []
     
     def getinstance(self, instance_name, zone=None):
@@ -209,7 +208,7 @@ class GCE:
                                                       instance=instance_name,
                                                       zone=zone)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
     def attachdisk(self, instance_name, disk_name, mode='READ_WRITE', zone=None):
         """
@@ -235,7 +234,7 @@ class GCE:
                                                           instance=instance_name,
                                                           zone=zone)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
     def detachdisk(self, instance_name, disk_name, zone=None):
         """
@@ -251,7 +250,7 @@ class GCE:
                                                           deviceName=disk_name,
                                                           zone=zone)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
 
     # Firewalls
@@ -270,8 +269,7 @@ class GCE:
         }
         request = self.gce_service.firewalls().insert(project=self.project_id,
                                                       body=firewall)
-        response = request.execute(http=self.auth_http)
-        print response
+        return request.execute(http=self.auth_http)
 
     def listfirewalls(self):
         """
@@ -283,7 +281,6 @@ class GCE:
         if response and 'items' in response:
             return [firewall['name'] for firewall in response['items']]
         else:
-            print 'No firewalls to list. '
             return []
 
     def deletefirewall(self, firewall_name):
@@ -292,7 +289,7 @@ class GCE:
         """
         request = self.gce_service.firewalls().delete(project=self.project_id,
                                                       firewall=firewall_name)
-        response = request.execute(http=self.auth_http)
+        return request.execute(http=self.auth_http)
 
     
     # Disks
@@ -313,7 +310,7 @@ class GCE:
                                                           zone=zone,
                                                           disk=disk_name)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
     
     def listsnapshots(self):
         """
@@ -323,10 +320,9 @@ class GCE:
                                                     filter=None)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
-            for snapshot in response['items']:
-                print snapshot['name']
+            return [snapshot['name'] for snapshot in response['items']]
         else:
-            print 'No snapshots to list. '
+            return []
     
     def deletesnapshot(self, snapshot_name):
         """
@@ -334,7 +330,7 @@ class GCE:
         """
         request = self.gce_service.snapshots().delete(project=self.project_id,
                                                       snapshot=snapshot_name)
-        response = request.execute(http=self.auth_http)
+        return request.execute(http=self.auth_http)
     
     def adddisk(self, disk_name, disk_type='pd-standard', source_image=None, source_snapshot=None, size_gb=None, zone=None):
         """
@@ -366,7 +362,7 @@ class GCE:
                                                       body=disk,
                                                       zone=zone)
             response = request.execute(http=self.auth_http)
-            response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+            return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
         else:
             print 'At least one of source_image, source_snapshot and size_gb must be specified'
     
@@ -384,10 +380,9 @@ class GCE:
                                                 zone=zone)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
-            for disk in response['items']:
-                print disk['name']
+            return [disk['name'] for disk in response['items']]
         else:
-            print 'No disks to list. '
+            return []
     
     def deletedisk(self, disk_name, zone=None):
         """
@@ -402,7 +397,7 @@ class GCE:
                                                   disk=disk_name,
                                                   zone=zone)
         response = request.execute(http=self.auth_http)
-        response = _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
+        return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
 
     # Images
@@ -424,6 +419,7 @@ class GCE:
         request = self.gce_service.images().insert(project=self.project_id,
                                                    body=image)
         response = request.execute(http=self.auth_http)
+        return _blocking_call(self.gce_service, self.project_id, self.auth_http, response)
 
     def listimages(self):
         """
@@ -433,10 +429,10 @@ class GCE:
                                                  filter=None)
         response = request.execute(http=self.auth_http)
         if response and 'items' in response:
-            for firewall in response['items']:
-                print firewall['name']
+            return [image['name'] for image in response['items']]
         else:
-            print 'No images in list. '
+            print 'No images to list. '
+            return []
 
     def deleteimage(self, image_name):
         """
@@ -444,7 +440,7 @@ class GCE:
         """
         request = self.gce_service.images().delete(project=self.project_id,
                                                    image=image_name)
-        response = request.execute(http=self.auth_http)
+        return request.execute(http=self.auth_http)
 
 
 def _blocking_call(gce_service, project_id, auth_http, response):
@@ -456,17 +452,14 @@ def _blocking_call(gce_service, project_id, auth_http, response):
     
         # Identify if this is a per-zone resource
         if 'zone' in response:
-            zone_name = response['zone'].split('/')[-1]
+            zone = response['zone'].split('/')[-1]
             request = gce_service.zoneOperations().get(
-                    project=project_id, operation=operation_id, zone=zone_name)
+                    project=project_id, operation=operation_id, zone=zone)
         else:
-            request = gce_service.zoneOperations().get(
-                    project=project_id, operation=operation_id, zone=zone_name)
+            request = gce_service.globalOperations().get(
+                    project=project_id, operation=operation_id)
         
         response = request.execute(http=auth_http)
         if response:
             status = response['status']
     return response
-
-
-gce = GCE(project_id="nth-clone-620", zone="us-central1-a", logging_level=logging.WARNING)
